@@ -1,0 +1,48 @@
+# Publishes to PyPI using Trusted Publishers (OIDC) when a version tag is pushed.
+#
+# Setup:
+#   1. Create the "pypi" environment in GitHub: Settings → Environments → New
+#   2. On pypi.org, go to your project → Publishing → Add a new publisher:
+#        - Owner: JimScope
+#        - Repository: vendel-sdk-python
+#        - Workflow: publish.yml
+#        - Environment: pypi
+#   For the first publish, configure a "pending publisher" at:
+#     https://pypi.org/manage/account/publishing/
+#
+# Usage:
+#   1. Update "version" in pyproject.toml
+#   2. git tag v0.2.0 && git push origin v0.2.0
+
+name: Publish to PyPI
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build package
+        run: python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
