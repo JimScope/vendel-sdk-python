@@ -49,6 +49,39 @@ class VendelClient:
         data = self._post("/api/sms/send", payload)
         return SendSMSResponse.from_dict(data)
 
+    def send_sms_template(
+        self,
+        recipients: list[str],
+        template_id: str,
+        variables: dict[str, str] | None = None,
+        device_id: str | None = None,
+    ) -> SendSMSResponse:
+        """Send an SMS using a saved template with variable interpolation.
+
+        Reserved variables (``{{name}}``, ``{{phone}}``) are auto-filled
+        from contacts.
+
+        Args:
+            recipients: Phone numbers in E.164 format (e.g. ``+1234567890``).
+            template_id: ID of the saved template.
+            variables: Values for custom template variables (e.g. ``{"code": "1234"}``).
+            device_id: Optional device to route through.
+
+        Returns:
+            A :class:`SendSMSResponse` with batch ID and message IDs.
+
+        Raises:
+            VendelQuotaError: If the monthly SMS quota is exceeded.
+            VendelAPIError: On any other API error.
+        """
+        payload: dict = {"recipients": recipients, "template_id": template_id}
+        if variables:
+            payload["variables"] = variables
+        if device_id:
+            payload["device_id"] = device_id
+        data = self._post("/api/sms/send-template", payload)
+        return SendSMSResponse.from_dict(data)
+
     def get_quota(self) -> Quota:
         """Get the current quota for the authenticated user.
 
