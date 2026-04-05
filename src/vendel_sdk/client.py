@@ -28,6 +28,7 @@ class VendelClient:
         recipients: list[str],
         body: str,
         device_id: str | None = None,
+        group_ids: list[str] | None = None,
     ) -> SendSMSResponse:
         """Send an SMS to one or more recipients.
 
@@ -35,6 +36,7 @@ class VendelClient:
             recipients: Phone numbers in E.164 format (e.g. ``+1234567890``).
             body: Message text (max 1600 characters).
             device_id: Optional device to route through.
+            group_ids: Contact group IDs whose members will be added as recipients.
 
         Returns:
             A :class:`SendSMSResponse` with batch ID and message IDs.
@@ -46,6 +48,8 @@ class VendelClient:
         payload: dict = {"recipients": recipients, "body": body}
         if device_id:
             payload["device_id"] = device_id
+        if group_ids:
+            payload["group_ids"] = group_ids
         data = self._post("/api/sms/send", payload)
         return SendSMSResponse.from_dict(data)
 
@@ -55,6 +59,7 @@ class VendelClient:
         template_id: str,
         variables: dict[str, str] | None = None,
         device_id: str | None = None,
+        group_ids: list[str] | None = None,
     ) -> SendSMSResponse:
         """Send an SMS using a saved template with variable interpolation.
 
@@ -66,6 +71,7 @@ class VendelClient:
             template_id: ID of the saved template.
             variables: Values for custom template variables (e.g. ``{"code": "1234"}``).
             device_id: Optional device to route through.
+            group_ids: Contact group IDs whose members will be added as recipients.
 
         Returns:
             A :class:`SendSMSResponse` with batch ID and message IDs.
@@ -79,6 +85,8 @@ class VendelClient:
             payload["variables"] = variables
         if device_id:
             payload["device_id"] = device_id
+        if group_ids:
+            payload["group_ids"] = group_ids
         data = self._post("/api/sms/send-template", payload)
         return SendSMSResponse.from_dict(data)
 
