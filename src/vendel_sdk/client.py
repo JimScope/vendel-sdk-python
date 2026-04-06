@@ -3,7 +3,15 @@ from __future__ import annotations
 import requests
 
 from .exceptions import VendelAPIError, VendelQuotaError
-from .types import Quota, SendSMSResponse
+from .types import (
+    BatchStatus,
+    Contact,
+    ContactGroup,
+    MessageStatus,
+    PaginatedResponse,
+    Quota,
+    SendSMSResponse,
+)
 
 
 class VendelClient:
@@ -98,6 +106,41 @@ class VendelClient:
         """
         data = self._get("/api/plans/quota")
         return Quota.from_dict(data)
+
+    def get_message_status(self, message_id: str) -> MessageStatus:
+        """Get the delivery status of a single SMS message."""
+        data = self._get(f"/api/sms/status/{message_id}")
+        return MessageStatus.from_dict(data)
+
+    def get_batch_status(self, batch_id: str) -> BatchStatus:
+        """Get the delivery status of all messages in a batch."""
+        data = self._get(f"/api/sms/batch/{batch_id}")
+        return BatchStatus.from_dict(data)
+
+    def list_contacts(
+        self,
+        page: int = 1,
+        per_page: int = 50,
+        search: str | None = None,
+        group_id: str | None = None,
+    ) -> PaginatedResponse:
+        """List contacts with optional search and group filter."""
+        params = f"?page={page}&per_page={per_page}"
+        if search:
+            params += f"&search={search}"
+        if group_id:
+            params += f"&group_id={group_id}"
+        data = self._get(f"/api/contacts{params}")
+        return PaginatedResponse.from_dict(data, Contact)
+
+    def list_contact_groups(
+        self,
+        page: int = 1,
+        per_page: int = 50,
+    ) -> PaginatedResponse:
+        """List contact groups."""
+        data = self._get(f"/api/contacts/groups?page={page}&per_page={per_page}")
+        return PaginatedResponse.from_dict(data, ContactGroup)
 
     # ------------------------------------------------------------------
     # Internal helpers
