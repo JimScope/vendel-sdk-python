@@ -108,6 +108,135 @@ class TestGetQuota(unittest.TestCase):
         self.assertEqual(quota.sms_sent_this_month, 50)
 
 
+class TestListDevices(unittest.TestCase):
+    def setUp(self):
+        self.client = VendelClient("https://api.example.com", "vk_test")
+
+    @patch.object(VendelClient, "_get")
+    def test_success(self, mock_get):
+        mock_get.return_value = {
+            "items": [
+                {
+                    "id": "dev1", "name": "Pixel", "device_type": "android",
+                    "phone_number": "+15551234567",
+                    "created": "2026-04-01", "updated": "2026-04-02",
+                },
+            ],
+            "page": 1, "per_page": 50, "total_items": 1, "total_pages": 1,
+        }
+        resp = self.client.list_devices()
+        mock_get.assert_called_once_with(
+            "/api/devices",
+            params={"page": 1, "per_page": 50, "device_type": None},
+        )
+        self.assertEqual(len(resp.items), 1)
+        self.assertEqual(resp.items[0].id, "dev1")
+        self.assertEqual(resp.items[0].device_type, "android")
+
+    @patch.object(VendelClient, "_get")
+    def test_with_filter(self, mock_get):
+        mock_get.return_value = {
+            "items": [], "page": 2, "per_page": 10,
+            "total_items": 0, "total_pages": 0,
+        }
+        self.client.list_devices(page=2, per_page=10, device_type="android")
+        mock_get.assert_called_once_with(
+            "/api/devices",
+            params={"page": 2, "per_page": 10, "device_type": "android"},
+        )
+
+
+class TestListMessages(unittest.TestCase):
+    def setUp(self):
+        self.client = VendelClient("https://api.example.com", "vk_test")
+
+    @patch.object(VendelClient, "_get")
+    def test_success(self, mock_get):
+        mock_get.return_value = {
+            "items": [
+                {
+                    "id": "m1", "batch_id": "b1", "recipient": "+15551234567",
+                    "from_number": "+15557654321", "body": "Hello",
+                    "status": "sent", "message_type": "outbound",
+                    "error_message": "", "device_id": "dev1",
+                    "sent_at": "2026-04-29T10:00:00Z",
+                    "delivered_at": "2026-04-29T10:00:05Z",
+                    "created": "2026-04-29T10:00:00Z",
+                    "updated": "2026-04-29T10:00:05Z",
+                },
+            ],
+            "page": 1, "per_page": 50, "total_items": 1, "total_pages": 1,
+        }
+        resp = self.client.list_messages()
+        mock_get.assert_called_once_with(
+            "/api/sms/messages",
+            params={
+                "page": 1, "per_page": 50, "status": None,
+                "device_id": None, "batch_id": None, "recipient": None,
+                "from": None, "to": None,
+            },
+        )
+        self.assertEqual(len(resp.items), 1)
+        self.assertEqual(resp.items[0].id, "m1")
+        self.assertEqual(resp.items[0].from_number, "+15557654321")
+        self.assertEqual(resp.items[0].message_type, "outbound")
+        self.assertEqual(resp.items[0].body, "Hello")
+
+    @patch.object(VendelClient, "_get")
+    def test_maps_from_and_to(self, mock_get):
+        mock_get.return_value = {
+            "items": [], "page": 1, "per_page": 50,
+            "total_items": 0, "total_pages": 0,
+        }
+        self.client.list_messages(
+            status="failed",
+            device_id="dev1",
+            from_date="2026-04-01",
+            to_date="2026-04-30",
+        )
+        mock_get.assert_called_once_with(
+            "/api/sms/messages",
+            params={
+                "page": 1, "per_page": 50, "status": "failed",
+                "device_id": "dev1", "batch_id": None, "recipient": None,
+                "from": "2026-04-01", "to": "2026-04-30",
+            },
+        )
+
+
+class TestGetParamsHandling(unittest.TestCase):
+    def test_drops_none_params(self):
+        client = VendelClient("https://api.example.com", "vk_test")
+        with patch.object(client._session, "get") as mock_session_get:
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.ok = True
+            mock_resp.json.return_value = {
+                "items": [], "page": 1, "per_page": 50,
+                "total_items": 0, "total_pages": 0,
+            }
+            mock_session_get.return_value = mock_resp
+            client._get(
+                "/api/devices",
+                params={"page": 1, "per_page": 50, "device_type": None},
+            )
+            kwargs = mock_session_get.call_args.kwargs
+            self.assertEqual(kwargs["params"], {"page": 1, "per_page": 50})
+            self.assertNotIn("device_type", kwargs["params"])
+
+    def test_no_params_kwarg_when_none(self):
+        client = VendelClient("https://api.example.com", "vk_test")
+        with patch.object(client._session, "get") as mock_session_get:
+            mock_resp = MagicMock()
+            mock_resp.status_code = 200
+            mock_resp.ok = True
+            mock_resp.json.return_value = {}
+            mock_session_get.return_value = mock_resp
+            client._get("/api/plans/quota")
+            kwargs = mock_session_get.call_args.kwargs
+            self.assertIsNone(kwargs["params"])
+
+
 class TestErrorHandling(unittest.TestCase):
     def test_api_error(self):
         resp = MagicMock()

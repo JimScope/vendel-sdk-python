@@ -1,6 +1,6 @@
 import unittest
 
-from vendel_sdk.types import SendSMSResponse, Quota
+from vendel_sdk.types import Device, MessageStatus, Quota, SendSMSResponse
 
 
 class TestSendSMSResponse(unittest.TestCase):
@@ -35,6 +35,58 @@ class TestQuota(unittest.TestCase):
         }
         q = Quota.from_dict(data)
         self.assertEqual(q.reset_date, "")
+
+
+class TestDevice(unittest.TestCase):
+    def test_from_dict(self):
+        data = {
+            "id": "dev1",
+            "name": "Pixel 8",
+            "device_type": "android",
+            "phone_number": "+15551234567",
+            "created": "2026-04-01",
+            "updated": "2026-04-02",
+        }
+        d = Device.from_dict(data)
+        self.assertEqual(d.id, "dev1")
+        self.assertEqual(d.name, "Pixel 8")
+        self.assertEqual(d.device_type, "android")
+        self.assertEqual(d.phone_number, "+15551234567")
+
+    def test_from_dict_defaults(self):
+        d = Device.from_dict({})
+        self.assertEqual(d.id, "")
+        self.assertEqual(d.device_type, "")
+
+
+class TestMessageStatusNewFields(unittest.TestCase):
+    def test_from_dict_with_new_fields(self):
+        data = {
+            "id": "m1", "batch_id": "b1", "recipient": "+1",
+            "from_number": "+2", "body": "hi",
+            "status": "sent", "message_type": "outbound",
+            "error_message": "", "device_id": "dev1",
+            "sent_at": "t1", "delivered_at": "t2",
+            "created": "c", "updated": "u",
+        }
+        m = MessageStatus.from_dict(data)
+        self.assertEqual(m.from_number, "+2")
+        self.assertEqual(m.message_type, "outbound")
+        self.assertEqual(m.body, "hi")
+        self.assertEqual(m.sent_at, "t1")
+        self.assertEqual(m.delivered_at, "t2")
+
+    def test_from_dict_legacy_payload(self):
+        # Backwards-compatible: payloads without the new fields still parse.
+        data = {
+            "id": "m1", "batch_id": "b1", "recipient": "+1",
+            "status": "sent", "error_message": "", "device_id": "dev1",
+            "created": "c", "updated": "u",
+        }
+        m = MessageStatus.from_dict(data)
+        self.assertEqual(m.from_number, "")
+        self.assertEqual(m.message_type, "")
+        self.assertEqual(m.body, "")
 
 
 if __name__ == "__main__":

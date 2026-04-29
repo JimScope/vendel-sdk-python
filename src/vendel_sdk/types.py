@@ -51,6 +51,11 @@ class MessageStatus:
     device_id: str
     created: str
     updated: str
+    from_number: str = ""
+    message_type: str = ""
+    body: str = ""
+    sent_at: str = ""
+    delivered_at: str = ""
 
     @classmethod
     def from_dict(cls, data: dict) -> MessageStatus:
@@ -61,6 +66,32 @@ class MessageStatus:
             status=data.get("status", ""),
             error_message=data.get("error_message", ""),
             device_id=data.get("device_id", ""),
+            created=data.get("created", ""),
+            updated=data.get("updated", ""),
+            from_number=data.get("from_number", ""),
+            message_type=data.get("message_type", ""),
+            body=data.get("body", ""),
+            sent_at=data.get("sent_at", ""),
+            delivered_at=data.get("delivered_at", ""),
+        )
+
+
+@dataclass
+class Device:
+    id: str
+    name: str
+    device_type: str
+    phone_number: str
+    created: str
+    updated: str
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Device:
+        return cls(
+            id=data.get("id", ""),
+            name=data.get("name", ""),
+            device_type=data.get("device_type", ""),
+            phone_number=data.get("phone_number", ""),
             created=data.get("created", ""),
             updated=data.get("updated", ""),
         )

@@ -7,6 +7,7 @@ from .types import (
     BatchStatus,
     Contact,
     ContactGroup,
+    Device,
     MessageStatus,
     PaginatedResponse,
     Quota,
@@ -142,12 +143,81 @@ class VendelClient:
         data = self._get(f"/api/contacts/groups?page={page}&per_page={per_page}")
         return PaginatedResponse.from_dict(data, ContactGroup)
 
+    def list_devices(
+        self,
+        page: int = 1,
+        per_page: int = 50,
+        device_type: str | None = None,
+    ) -> PaginatedResponse:
+        """List the authenticated user's registered devices.
+
+        Args:
+            page: Page number (default 1).
+            per_page: Items per page (default 50, max 200).
+            device_type: Optional filter (e.g. ``"android"``).
+
+        Returns:
+            A :class:`PaginatedResponse` of :class:`Device` items.
+        """
+        params: dict = {
+            "page": page,
+            "per_page": per_page,
+            "device_type": device_type,
+        }
+        data = self._get("/api/devices", params=params)
+        return PaginatedResponse.from_dict(data, Device)
+
+    def list_messages(
+        self,
+        page: int = 1,
+        per_page: int = 50,
+        status: str | None = None,
+        device_id: str | None = None,
+        batch_id: str | None = None,
+        recipient: str | None = None,
+        from_date: str | None = None,
+        to_date: str | None = None,
+    ) -> PaginatedResponse:
+        """List SMS messages for the authenticated user with optional filters.
+
+        Args:
+            page: Page number (default 1).
+            per_page: Items per page (default 50, max 200).
+            status: Optional status filter (e.g. ``"sent"``, ``"failed"``).
+            device_id: Optional device ID filter.
+            batch_id: Optional batch ID filter.
+            recipient: Optional recipient phone number filter.
+            from_date: ISO8601 date lower bound (sent as ``from``).
+            to_date: ISO8601 date upper bound (sent as ``to``).
+
+        Returns:
+            A :class:`PaginatedResponse` of :class:`MessageStatus` items.
+        """
+        params: dict = {
+            "page": page,
+            "per_page": per_page,
+            "status": status,
+            "device_id": device_id,
+            "batch_id": batch_id,
+            "recipient": recipient,
+            "from": from_date,
+            "to": to_date,
+        }
+        data = self._get("/api/sms/messages", params=params)
+        return PaginatedResponse.from_dict(data, MessageStatus)
+
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
 
-    def _get(self, path: str) -> dict:
-        resp = self._session.get(f"{self.base_url}{path}", timeout=self.timeout)
+    def _get(self, path: str, params: dict | None = None) -> dict:
+        if params is not None:
+            params = {k: v for k, v in params.items() if v is not None}
+        resp = self._session.get(
+            f"{self.base_url}{path}",
+            params=params,
+            timeout=self.timeout,
+        )
         return self._handle_response(resp)
 
     def _post(self, path: str, json: dict) -> dict:
