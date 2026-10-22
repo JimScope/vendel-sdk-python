@@ -11,11 +11,15 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Oldest supported (requires-python) and latest
+        python-version: ["3.11", "3.14"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - run: pip install requests
       - run: pip install -e .
       - run: python -m unittest discover tests -v
