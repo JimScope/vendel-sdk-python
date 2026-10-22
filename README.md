@@ -38,7 +38,7 @@ is_valid = verify_webhook_signature(
 
 ## Requirements
 
-- Python >= 3.9
+- Python >= 3.11
 
 ## License
 
